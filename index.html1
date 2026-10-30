@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industrial IoT Control Center | Spark Drives & Automation</title>
+  
+  <!-- Favicon / Branding -->
+  <link rel="icon" href="https://5.imimg.com/data5/SELLER/Banner/2021/10/QW/NP/LH/58996682/favicon.ico">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- SheetJS for Exporting to Real Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Chart.js for Industrial IoT Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase v10 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- Application Stylesheet (Clean Light Corporate Theme) -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Speed Control & Actuator Enhancements */
+    .speed-slider-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .motor-speed-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--border-color);
+      outline: none;
+      transition: background 0.2s;
+    }
+    .motor-speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--brand-primary);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s;
+    }
+    .motor-speed-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .preset-btn-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .preset-speed-btn {
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+    .preset-speed-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+    .preset-speed-btn.active {
+      background: var(--brand-primary);
+      color: #ffffff;
+      border-color: var(--brand-primary);
+    }
+    .direction-toggle-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .dir-btn {
+      flex: 1;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .dir-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+    }
+    .dir-btn.active {
+      background: var(--brand-light);
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. AUTHENTICATION VIEW (Clean Corporate Light Login Page)
+       ======================================================================== -->
+  <div id="auth-view" class="auth-wrapper" style="display: flex;">
+    <!-- Left Hero Pane -->
+    <div class="auth-hero-pane">
+      <div class="hero-brand">
+        <div class="brand-badge">S</div>
+        <div class="hero-brand-text">
+          <h1>Spark Drives & Automation</h1>
+          <span>Industrial Automation & IoT Solutions</span>
+        </div>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-tag">
+          <i data-lucide="shield-check" style="width:14px; height:14px;"></i> Enterprise Industrial Platform
+        </div>
+        <h2>Precision IoT Control & Automated Monitoring</h2>
+        <p>
+          Seamlessly bridge physical automation hardware with cloud intelligence. 
+          Manage real-time telemetry, bi-directional control channels, and fieldbus systems.
+        </p>
+
+        <div class="hero-features">
+          <div class="feature-pill">
+            <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+            <div>
+              <h4>Edge Controller Sync</h4>
+              <p>ESP32 & Field Controller integration</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="activity" style="width:20px; height:20px;"></i>
+            <div>
+              <h4>Sub-Second Telemetry</h4>
+              <p>Google Firebase RTDB backbone</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+            <div>
+              <h4>HMI & Web Dual Sync</h4>
+              <p>Unified state across all interfaces</p>
+            </div>
+          </div>
+          <div class="feature-pill">
+            <i data-lucide="file-spreadsheet" style="width:20px; height:20px;"></i>
+            <div>
+              <h4>Audit History & Excel</h4>
+              <p>Full event tracking and reporting</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-footer">
+        <span>Coimbatore, Tamil Nadu • GST: 33ALCPP9746R2Z7</span>
+        <a href="https://www.sparkdna.co.in/" target="_blank" rel="noopener noreferrer">Official Website &rarr;</a>
+      </div>
+    </div>
+
+    <!-- Right Login Card Pane -->
+    <div class="auth-form-pane">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h3>Welcome Back</h3>
+          <p>Sign in to access the Industrial IoT Control Center.</p>
+        </div>
+
+        <div id="login-alert" class="auth-alert" style="display: none;"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Authorized Email Address</label>
+            <div class="form-input-wrap">
+              <span class="input-icon-left"><i data-lucide="mail" style="width:16px; height:16px;"></i></span>
+              <input type="email" id="login-email" class="form-input" placeholder="name@sparkdna.co.in" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">Operator Password</label>
+            <div class="form-input-wrap">
+              <span class="input-icon-left"><i data-lucide="lock" style="width:16px; height:16px;"></i></span>
+              <input type="password" id="login-password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+              <button type="button" id="toggle-password-btn" class="password-toggle-btn">Show</button>
+            </div>
+          </div>
+
+          <div class="form-actions-bar">
+            <button type="button" id="forgot-password-btn" class="forgot-password-link">Forgot Password?</button>
+          </div>
+
+          <button type="submit" id="login-submit-btn" class="btn-primary">
+            <span>Sign In to Control Center</span>
+            <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+          </button>
+        </form>
+
+        <div class="auth-card-footer">
+          <p>SPARK DRIVES & AUTOMATION • SECURE INDUSTRIAL PORTAL</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       2. AUTHENTICATED APPLICATION SHELL
+       ======================================================================== -->
+  <div id="app-view" class="app-layout" style="display: none;">
+    
+    <!-- FIXED LEFT SIDEBAR -->
+    <aside id="app-sidebar" class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="#dashboard" class="sidebar-brand">
+          <div class="brand-icon-sq">S</div>
+          <div class="brand-title-wrap">
+            <span class="brand-title">SPARK DRIVES</span>
+            <span class="brand-sub">IoT Control Platform</span>
+          </div>
+        </a>
+        <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar">
+          <i data-lucide="chevrons-left" style="width:16px; height:16px;"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-nav-container">
+        <div class="nav-section-title">Main</div>
+        <a href="#dashboard" class="nav-item active" data-route="dashboard">
+          <span class="nav-icon"><i data-lucide="layout-grid" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+
+        <div class="nav-section-title">Devices</div>
+        <a href="#devices" class="nav-item" data-route="devices">
+          <span class="nav-icon"><i data-lucide="cpu" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Connected Devices</span>
+        </a>
+        <a href="#control" class="nav-item" data-route="control">
+          <span class="nav-icon"><i data-lucide="sliders" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Device Control</span>
+        </a>
+
+        <div class="nav-section-title">Monitoring</div>
+        <a href="#history" class="nav-item" data-route="history">
+          <span class="nav-icon"><i data-lucide="history" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Operation History</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-route="analytics">
+          <span class="nav-icon"><i data-lucide="bar-chart-3" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">System Analytics</span>
+        </a>
+        <a href="#status" class="nav-item" data-route="status">
+          <span class="nav-icon"><i data-lucide="activity" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">System Status</span>
+        </a>
+
+        <div class="nav-section-title">Company</div>
+        <a href="#company" class="nav-item" data-route="company">
+          <span class="nav-icon"><i data-lucide="building-2" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Company Profile</span>
+        </a>
+
+        <div class="nav-section-title">Account</div>
+        <a href="#profile" class="nav-item" data-route="profile">
+          <span class="nav-icon"><i data-lucide="user" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">My Profile</span>
+        </a>
+        <a href="#settings" class="nav-item" data-route="settings">
+          <span class="nav-icon"><i data-lucide="settings" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Settings</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <div id="sidebar-status-dot" class="pulse-dot connecting"></div>
+          <div class="system-status-text">
+            <span id="sidebar-status-text">Connecting Gateway...</span>
+            <span>ESP32 Hardware Link</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN APP CANVAS & STICKY HEADER -->
+    <div class="app-main">
+      
+      <!-- STICKY TOP HEADER -->
+      <header class="app-header">
+        <div class="header-left">
+          <button id="mobile-menu-btn" class="mobile-menu-btn">
+            <i data-lucide="menu" style="width:20px; height:20px;"></i>
+          </button>
+          <div class="page-title-box">
+            <h2 id="header-page-title">Dashboard</h2>
+            <div class="breadcrumb-trail">
+              <a href="#dashboard">Home</a>
+              <span>/</span>
+              <span id="breadcrumb-current">Dashboard</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Dynamic IST Clock -->
+          <div class="clock-chip">
+            <i data-lucide="clock" style="width:14px; height:14px;"></i>
+            <span id="live-clock">--:--:-- IST</span>
+          </div>
+
+          <!-- Live Connection Status Badges -->
+          <div class="connection-status-group">
+            <div id="firebase-conn-badge" class="conn-badge waiting">
+              <span class="pulse-dot connecting"></span> Firebase Syncing
+            </div>
+            <div id="esp32-conn-badge" class="conn-badge waiting">
+              <span class="pulse-dot connecting"></span> ESP32 Offline
+            </div>
+          </div>
+
+          <!-- Notification Bell -->
+          <div style="position: relative;">
+            <button id="notif-btn" class="header-action-icon" title="Notifications">
+              <i data-lucide="bell" style="width:18px; height:18px;"></i>
+              <span id="notif-badge" class="notification-count" style="display: none;">0</span>
+            </button>
+            <div id="notif-dropdown" class="dropdown-flyout" style="width: 320px; right: 0;">
+              <div class="dropdown-header-bar">
+                <span>Notifications</span>
+                <button id="mark-notifs-read-btn" style="background:none; border:none; color:var(--brand-primary); font-size:12px; cursor:pointer;">Mark all read</button>
+              </div>
+              <div id="notif-list" style="max-height: 280px; overflow-y: auto;">
+                <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">No unread alerts</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Profile Dropdown -->
+          <div class="user-profile-menu" style="position: relative;">
+            <button id="user-dropdown-btn" class="user-profile-trigger">
+              <div id="user-avatar-initial" class="user-avatar-circle">U</div>
+              <div class="user-info-text">
+                <span id="user-name-display" class="user-info-name">Authorized User</span>
+                <span id="user-role-display" class="user-info-role">Operator</span>
+              </div>
+              <i data-lucide="chevron-down" style="width:14px; height:14px; color:var(--text-muted);"></i>
+            </button>
+            <div id="user-dropdown" class="dropdown-flyout" style="width: 200px; right: 0;">
+              <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color);">
+                <div id="dropdown-user-email" style="font-size: 12px; color: var(--text-muted); word-break: break-all;">user@sparkdna.co.in</div>
+              </div>
+              <a href="#profile" class="dropdown-item">
+                <i data-lucide="user" style="width:14px; height:14px;"></i> My Profile
+              </a>
+              <a href="#settings" class="dropdown-item">
+                <i data-lucide="settings" style="width:14px; height:14px;"></i> System Settings
+              </a>
+              <div style="border-top: 1px solid var(--border-color); margin: 4px 0;"></div>
+              <button id="logout-btn" class="dropdown-item danger" style="width: 100%; border:none; background:none; text-align:left; cursor:pointer;">
+                <i data-lucide="log-out" style="width:14px; height:14px;"></i> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SCROLLABLE PAGE CANVAS -->
+      <main class="content-body">
+
+        <!-- ==================================================================
+             PAGE 1: DASHBOARD
+             ================================================================== -->
+        <section id="page-dashboard" class="page-view">
+          <div class="page-hero">
+            <h1>Industrial IoT Control Center</h1>
+            <p>Monitor, control and analyze connected automation devices in real time.</p>
+          </div>
+
+          <!-- 4 SUMMARY METRIC CARDS -->
+          <div class="cards-row-4">
+            <!-- Card 1: Motor / Actuator Status -->
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Actuator State</span>
+                <div class="metric-icon-box"><i data-lucide="power" style="width:16px; height:16px;"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span id="dash-actuator-val" class="metric-main-value" style="color: var(--status-red);">OFF</span>
+              </div>
+              <div class="metric-sub-meta">
+                <span>Device: <strong id="dash-actuator-dev">ESP32-MOTOR-001</strong></span>
+                <span>Speed: <strong id="dash-actuator-speed">0% (PWM 0)</strong></span>
+                <span>Source: <strong id="dash-actuator-source">Website</strong></span>
+              </div>
+            </div>
+
+            <!-- Card 2: ESP32 Gateway -->
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">ESP32 Gateway</span>
+                <div class="metric-icon-box"><i data-lucide="cpu" style="width:16px; height:16px;"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span id="dash-esp-val" class="metric-main-value" style="color: var(--status-red);">OFFLINE</span>
+              </div>
+              <div class="metric-sub-meta">
+                <span>IP: <strong id="dash-esp-ip">10.225.173.73</strong></span>
+                <span>Wi-Fi: <strong id="dash-esp-wifi">Connected</strong></span>
+                <span>Last Ping: <strong id="dash-esp-lastseen">--</strong></span>
+              </div>
+            </div>
+
+            <!-- Card 3: Firebase RTDB -->
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Cloud Backbone</span>
+                <div class="metric-icon-box"><i data-lucide="cloud" style="width:16px; height:16px;"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span id="dash-fb-val" class="metric-main-value" style="color: var(--status-green);">CONNECTED</span>
+              </div>
+              <div class="metric-sub-meta">
+                <span>Project: <strong>harshini-feb82</strong></span>
+                <span>Sync Stream: <strong id="dash-fb-sync">Sub-second Active</strong></span>
+              </div>
+            </div>
+
+            <!-- Card 4: Today's Events -->
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-title">Audit Log Count</span>
+                <div class="metric-icon-box"><i data-lucide="history" style="width:16px; height:16px;"></i></div>
+              </div>
+              <div class="metric-value-row">
+                <span id="dash-today-events" class="metric-main-value">0</span>
+              </div>
+              <div class="metric-sub-meta">
+                <span>Total Recorded Operations</span>
+                <span>Bidirectional HMI + Web Sync</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DASHBOARD 2-COLUMN GRID: QUICK CONTROL & REAL-TIME ACTIVITY -->
+          <div class="dashboard-grid-2">
+            <!-- Left: Quick Motor Control Panel -->
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3 class="panel-title">Quick Actuator & Speed Control</h3>
+                <span id="quick-status-badge" class="badge badge-off">● Standby</span>
+              </div>
+
+              <div class="led-control-box">
+                <!-- Glowing Virtual Actuator Indicator -->
+                <div id="dash-virtual-lamp" class="virtual-led-lamp"></div>
+
+                <div class="led-status-caption">
+                  Physical Output: <span id="dash-output-text" style="color:var(--text-secondary); font-weight:700;">OFF</span>
+                </div>
+                <div class="led-device-tag">ESP32 Pin: GPIO 25/26 (MX1508 IN3/IN4)</div>
+
+                <!-- Master Toggle Switch -->
+                <div class="master-toggle-wrapper">
+                  <span class="toggle-state-label" id="lbl-toggle-off">OFF</span>
+                  <label class="switch-control">
+                    <input type="checkbox" id="dash-motor-toggle">
+                    <span class="switch-slider"></span>
+                  </label>
+                  <span class="toggle-state-label" id="lbl-toggle-on">ON</span>
+                </div>
+
+                <!-- Speed Control Slider -->
+                <div class="speed-slider-wrap" style="width: 100%; max-width: 440px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 8px;">
+                    <span>Adjust Speed Setpoint:</span>
+                    <span id="dash-slider-speed-pct" style="color: var(--brand-primary); font-size: 16px;">0%</span>
+                  </div>
+                  <input type="range" id="dash-speed-slider" class="motor-speed-slider" min="0" max="100" value="0">
+                  
+                  <div class="preset-btn-group">
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(25)">25%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(50)">50%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(75)">75%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(100)">100%</button>
+                  </div>
+
+                  <div class="direction-toggle-group">
+                    <button id="dash-dir-fwd" class="dir-btn active" onclick="window.setMotorDirection('FORWARD')">
+                      <i data-lucide="arrow-right" style="width:14px; height:14px;"></i> Forward
+                    </button>
+                    <button id="dash-dir-rev" class="dir-btn" onclick="window.setMotorDirection('REVERSE')">
+                      <i data-lucide="arrow-left" style="width:14px; height:14px;"></i> Reverse
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Command Status Pipeline -->
+                <div class="command-pipeline-box" style="width: 100%; max-width: 440px;">
+                  <div class="pipeline-title">Command Execution Pipeline</div>
+                  <div class="pipeline-steps-row">
+                    <div class="pipeline-step">
+                      <div id="pipe-step-req" class="pipeline-step-badge success">✓</div>
+                      <div class="pipeline-step-label">Requested</div>
+                      <div id="pipe-req-val" class="pipeline-step-sub">OFF @ 0%</div>
+                    </div>
+                    <div class="pipeline-arrow">&rarr;</div>
+                    <div class="pipeline-step">
+                      <div id="pipe-step-fb" class="pipeline-step-badge success">✓</div>
+                      <div class="pipeline-step-label">Firebase</div>
+                      <div class="pipeline-step-sub">Synced</div>
+                    </div>
+                    <div class="pipeline-arrow">&rarr;</div>
+                    <div class="pipeline-step">
+                      <div id="pipe-step-esp" class="pipeline-step-badge pending">●</div>
+                      <div class="pipeline-step-label">ESP32</div>
+                      <div id="pipe-esp-val" class="pipeline-step-sub">Awaiting</div>
+                    </div>
+                    <div class="pipeline-arrow">&rarr;</div>
+                    <div class="pipeline-step">
+                      <div id="pipe-step-act" class="pipeline-step-badge pending">●</div>
+                      <div class="pipeline-step-label">Motor Output</div>
+                      <div id="pipe-act-val" class="pipeline-step-sub">PWM: 0</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Right: Real Activity History Timeline -->
+            <div class="panel-card">
+              <div class="panel-header">
+                <h3 class="panel-title">Recent Operation Activity</h3>
+                <a href="#history" class="btn-filter-chip" style="text-decoration:none;">View Full History &rarr;</a>
+              </div>
+
+              <!-- Vertical Timeline of Real Recorded Events -->
+              <div style="padding: 18px 24px;">
+                <div id="dash-recent-timeline" class="timeline-list">
+                  <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                    Loading recent audit trail from Firebase...
+                  </div>
+                </div>
+
+                <div style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text-secondary);">
+                    Today's Operation Distribution
+                  </div>
+                  <div style="height: 180px;">
+                    <canvas id="dash-activity-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 2: CONNECTED DEVICES
+             ================================================================== -->
+        <section id="page-devices" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Connected Devices</h1>
+            <p>Monitor the status and connectivity of your automation devices.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+            <div class="panel-card" style="padding: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                <div>
+                  <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">ESP32 Motor & Actuator Controller</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Model: NodeMCU ESP-WROOM-32</div>
+                </div>
+                <span id="dev-card-badge" class="badge badge-off">Offline</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">Device Identifier:</span>
+                  <code>ESP32-MOTOR-001</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">Actuator Output:</span>
+                  <strong id="dev-card-state" style="color: var(--brand-primary);">OFF (0% Speed)</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">Hardware Driver:</span>
+                  <span>MX1508 Dual H-Bridge (IN3/IN4)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">Local IP:</span>
+                  <span id="dev-card-ip" style="font-weight: 600;">10.225.173.73</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">Cloud Protocol:</span>
+                  <span style="font-weight: 600;">Firebase RTDB (WebSocket)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                  <span style="color: var(--text-muted);">HMI Interface:</span>
+                  <span style="font-weight: 600;">PIStudio Modbus TCP (Port 502)</span>
+                </div>
+              </div>
+
+              <a href="#control" class="btn-primary" style="width: 100%; justify-content: center; text-decoration: none;">
+                <i data-lucide="sliders" style="width:16px; height:16px;"></i> Open Control Terminal
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3: DEDICATED DEVICE CONTROL
+             ================================================================== -->
+        <section id="page-control" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Device Control Terminal</h1>
+            <p>Real-time bidirectional device control for ESP32 and MX1508 H-Bridge.</p>
+          </div>
+
+          <div style="max-width: 680px; margin: 0 auto;">
+            <div class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <div style="font-size:16px; font-weight:700;">Target Controller: ESP32-MOTOR-001</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Actuator Pins: GPIO 25 (IN3), GPIO 26 (IN4)</div>
+                </div>
+                <span id="ctrl-panel-badge" class="badge badge-on">● Hardware Ready</span>
+              </div>
+
+              <div class="led-control-box" style="padding: 36px 20px;">
+                <!-- Glowing Virtual Actuator -->
+                <div id="ctrl-virtual-lamp" class="virtual-led-lamp"></div>
+
+                <div class="led-status-caption">
+                  Physical Output: <span id="ctrl-status-text" style="color:var(--text-secondary);">OFF</span>
+                </div>
+                <div class="led-device-tag">Bidirectional Sync Active with PIStudio HMI</div>
+
+                <!-- Master Toggle Switch -->
+                <div class="master-toggle-wrapper">
+                  <span class="toggle-state-label" id="ctrl-toggle-lbl-off">OFF</span>
+                  <label class="switch-control">
+                    <input type="checkbox" id="ctrl-motor-toggle">
+                    <span class="switch-slider"></span>
+                  </label>
+                  <span class="toggle-state-label" id="ctrl-toggle-lbl-on">ON</span>
+                </div>
+
+                <!-- Pushbutton Pair -->
+                <div style="display: flex; gap: 12px; width: 100%; max-width: 440px; margin: 16px 0;">
+                  <button id="ctrl-start-btn" class="btn-primary" style="flex:1; background:var(--status-green);">
+                    <i data-lucide="play" style="width:16px; height:16px;"></i> START
+                  </button>
+                  <button id="ctrl-stop-btn" class="btn-primary" style="flex:1; background:var(--status-red);">
+                    <i data-lucide="square" style="width:16px; height:16px;"></i> STOP
+                  </button>
+                </div>
+
+                <!-- Speed Control Slider -->
+                <div class="speed-slider-wrap" style="width: 100%; max-width: 440px;">
+                  <div style="display: flex; justify-content: space-between; align-items:center; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: 700;">Motor Speed:</span>
+                    <span id="ctrl-speed-val" style="font-size: 18px; font-weight: 800; color: var(--brand-primary);">0%</span>
+                  </div>
+                  <input type="range" id="ctrl-speed-slider" class="motor-speed-slider" min="0" max="100" value="0">
+                  
+                  <div class="preset-btn-group">
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(25)">25%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(50)">50%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(75)">75%</button>
+                    <button class="preset-speed-btn" onclick="window.setMotorPresetSpeed(100)">100%</button>
+                  </div>
+
+                  <div class="direction-toggle-group">
+                    <button id="ctrl-dir-fwd" class="dir-btn active" onclick="window.setMotorDirection('FORWARD')">
+                      <i data-lucide="arrow-right" style="width:14px; height:14px;"></i> Forward
+                    </button>
+                    <button id="ctrl-dir-rev" class="dir-btn" onclick="window.setMotorDirection('REVERSE')">
+                      <i data-lucide="arrow-left" style="width:14px; height:14px;"></i> Reverse
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Telemetry Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 440px; margin-top: 10px;">
+                  <div style="background:var(--bg-subtle); padding:10px; border-radius:var(--radius-sm); text-align:center;">
+                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Control Source</div>
+                    <div id="ctrl-source" style="font-weight:700; font-size:13px;">Website</div>
+                  </div>
+                  <div style="background:var(--bg-subtle); padding:10px; border-radius:var(--radius-sm); text-align:center;">
+                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Applied PWM</div>
+                    <div id="ctrl-applied-pwm" style="font-weight:700; font-size:13px; color:var(--brand-primary);">0 / 255</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 4: OPERATION HISTORY & AUDIT LOGS
+             ================================================================== -->
+        <section id="page-history" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Operation History & Audit Trail</h1>
+            <p>View and analyze all state transitions recorded across Website, HMI, and ESP32.</p>
+          </div>
+
+          <!-- SUMMARY COUNTERS -->
+          <div class="history-stats-bar">
+            <div class="stat-box">
+              <div class="stat-box-title">Total Filtered Events</div>
+              <div id="hist-stat-total" class="stat-box-value">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-title">ON Operations</div>
+              <div id="hist-stat-on" class="stat-box-value" style="color:var(--status-green);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-title">OFF Operations</div>
+              <div id="hist-stat-off" class="stat-box-value" style="color:var(--status-red);">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-box-title">Speed Adjustments</div>
+              <div id="hist-stat-speed" class="stat-box-value" style="color:var(--brand-primary);">0</div>
+            </div>
+          </div>
+
+          <!-- FILTER BAR -->
+          <div class="filter-panel">
+            <div class="filter-grid">
+              <div class="filter-group">
+                <label for="filter-date-from">From Date</label>
+                <input type="date" id="filter-date-from" class="filter-input">
+              </div>
+              <div class="filter-group">
+                <label for="filter-date-to">To Date</label>
+                <input type="date" id="filter-date-to" class="filter-input">
+              </div>
+              <div class="filter-group">
+                <label for="filter-state">State</label>
+                <select id="filter-state" class="filter-input">
+                  <option value="ALL">All States</option>
+                  <option value="ON">ON</option>
+                  <option value="OFF">OFF</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filter-source">Source</label>
+                <select id="filter-source" class="filter-input">
+                  <option value="ALL">All Sources</option>
+                  <option value="website">Website</option>
+                  <option value="hmi">HMI</option>
+                  <option value="system">ESP32 / System</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-actions-bar">
+              <div style="display: flex; gap: 8px;">
+                <button id="filter-search-btn" class="btn-primary" style="font-size:13px;">
+                  <i data-lucide="search" style="width:14px; height:14px;"></i> Search History
+                </button>
+                <button id="filter-clear-btn" class="btn-secondary" style="font-size:13px;">
+                  Clear Filters
+                </button>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button id="export-csv-btn" class="btn-secondary" style="font-size:13px;">
+                  <i data-lucide="download" style="width:14px; height:14px;"></i> Export CSV
+                </button>
+                <button id="export-excel-btn" class="btn-excel" style="font-size:13px;">
+                  <i data-lucide="file-spreadsheet" style="width:14px; height:14px;"></i> Download Excel (.xlsx)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- HISTORY TABLE -->
+          <div class="table-card">
+            <div class="table-responsive">
+              <table class="enterprise-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time (IST)</th>
+                    <th>Device</th>
+                    <th>State</th>
+                    <th>Speed %</th>
+                    <th>Applied PWM</th>
+                    <th>Source</th>
+                    <th>Event Details</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                      Loading history records from Firebase...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- PAGINATION -->
+            <div class="pagination-bar">
+              <span id="pagination-info" class="pagination-info">Showing 0-0 of 0 events</span>
+              <div class="pagination-buttons">
+                <button id="prev-page-btn" class="btn-page" disabled>&larr; Previous</button>
+                <button id="next-page-btn" class="btn-page" disabled>Next &rarr;</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 5: SYSTEM ANALYTICS
+             ================================================================== -->
+        <section id="page-analytics" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>System Analytics</h1>
+            <p>Operational data and usage analysis calculated from actual recorded events.</p>
+          </div>
+
+          <!-- Top Analytics Cards -->
+          <div class="cards-row-4" style="margin-bottom: 24px;">
+            <div class="metric-card">
+              <span class="metric-title">Total Operations</span>
+              <div class="metric-main-value" id="analytics-total-ops">0</div>
+              <span class="metric-sub-meta">Recorded in cloud</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-title">Total ON Cycles</span>
+              <div class="metric-main-value" id="analytics-total-on" style="color:var(--status-green);">0</div>
+              <span class="metric-sub-meta">Successful activations</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-title">Total OFF Cycles</span>
+              <div class="metric-main-value" id="analytics-total-off" style="color:var(--status-red);">0</div>
+              <span class="metric-sub-meta">Controlled shutdowns</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-title">Primary Origin</span>
+              <div class="metric-main-value" id="analytics-primary-src" style="color:var(--brand-primary); font-size:20px;">Website</div>
+              <span class="metric-sub-meta">Most active control channel</span>
+            </div>
+          </div>
+
+          <!-- Real Charts Grid (NO fake sensor curves) -->
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+            <div class="panel-card" style="padding: 20px;">
+              <h3 class="panel-title" style="margin-bottom: 16px;">Daily Activity Over Time</h3>
+              <div style="height: 280px;">
+                <canvas id="chart-analytics-activity"></canvas>
+              </div>
+            </div>
+
+            <div class="panel-card" style="padding: 20px;">
+              <h3 class="panel-title" style="margin-bottom: 16px;">ON vs OFF Ratio</h3>
+              <div style="height: 280px;">
+                <canvas id="chart-analytics-ratio"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-card" style="padding: 20px; margin-top: 24px;">
+            <h3 class="panel-title" style="margin-bottom: 16px;">Control Command Source Distribution</h3>
+            <div style="height: 220px;">
+              <canvas id="chart-analytics-source"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 6: SYSTEM STATUS & ARCHITECTURE
+             ================================================================== -->
+        <section id="page-status" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>System Status & Architecture</h1>
+            <p>End-to-end communication chain monitoring across Cloud, Gateway, and Fieldbus.</p>
+          </div>
+
+          <!-- Visual Architecture Pipeline -->
+          <div class="panel-card" style="padding: 28px; margin-bottom: 24px;">
+            <h3 class="panel-title" style="margin-bottom: 24px; text-align: center;">Active Communication Pipeline</h3>
+            <div class="architecture-flow" style="display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 16px;">
+              <!-- Node 1 -->
+              <div class="arch-node" style="text-align: center;">
+                <div class="arch-node-icon"><i data-lucide="globe" style="width:28px; height:28px; color:var(--brand-primary);"></i></div>
+                <h4 style="font-size: 14px; margin-top: 8px;">Web Client</h4>
+                <span class="badge badge-on">● Online</span>
+              </div>
+              <div class="arch-connector" style="color:var(--brand-primary); font-size:24px;">&rarr;</div>
+
+              <!-- Node 2 -->
+              <div class="arch-node" style="text-align: center;">
+                <div class="arch-node-icon"><i data-lucide="cloud" style="width:28px; height:28px; color:var(--brand-primary);"></i></div>
+                <h4 style="font-size: 14px; margin-top: 8px;">Firebase RTDB</h4>
+                <span id="arch-fb-badge" class="badge badge-on">● Connected</span>
+              </div>
+              <div class="arch-connector" style="color:var(--brand-primary); font-size:24px;">&rarr;</div>
+
+              <!-- Node 3 -->
+              <div class="arch-node" style="text-align: center;">
+                <div class="arch-node-icon"><i data-lucide="cpu" style="width:28px; height:28px; color:var(--brand-primary);"></i></div>
+                <h4 style="font-size: 14px; margin-top: 8px;">ESP32 Controller</h4>
+                <span id="arch-esp-badge" class="badge badge-on">● Online</span>
+              </div>
+              <div class="arch-connector" style="color:var(--brand-primary); font-size:24px;">&rarr;</div>
+
+              <!-- Node 4 -->
+              <div class="arch-node" style="text-align: center;">
+                <div class="arch-node-icon"><i data-lucide="zap" style="width:28px; height:28px; color:var(--brand-primary);"></i></div>
+                <h4 style="font-size: 14px; margin-top: 8px;">MX1508 Driver</h4>
+                <span id="arch-out-badge" class="badge badge-on">● Active Output</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Specs Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <div class="panel-card" style="padding: 24px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">ESP32 Gateway Telemetry</h3>
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">IP Address:</span>
+                  <strong id="status-esp-ip">10.225.173.73</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Wi-Fi Status:</span>
+                  <strong id="status-esp-wifi" style="color:var(--status-green);">Connected</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Heartbeat Watchdog:</span>
+                  <span>5000 ms Interval</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Failover Timeout:</span>
+                  <span>20 Seconds</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-card" style="padding: 24px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">PIStudio HMI Fieldbus</h3>
+              <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Protocol:</span>
+                  <strong>Modbus TCP (Port 502)</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Run/Stop Coil:</span>
+                  <code>00001 (0x0000)</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Speed Setpoint Register:</span>
+                  <code>40001 (0x0000)</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: var(--text-muted);">Applied PWM Feedback:</span>
+                  <code>40002 (0x0001)</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 7: COMPANY PROFILE
+             ================================================================== -->
+        <section id="page-company" class="page-view" style="display: none;">
+          <div class="company-hero-banner">
+            <div class="hero-brand" style="margin-bottom: 12px;">
+              <div class="brand-badge" style="background:var(--brand-primary); color:#fff; width:44px; height:44px; font-size:22px;">S</div>
+              <div class="company-title-area">
+                <h2>Spark Drives & Automation</h2>
+                <p>Industrial Automation & Embedded Technology</p>
+              </div>
+            </div>
+            <p style="color: var(--text-secondary); max-width: 800px; line-height: 1.6; margin-bottom: 16px;">
+              Spark Drives & Automation is an engineering company delivering cutting-edge industrial automation, 
+              motor control, embedded systems, and Industrial IoT solutions. 
+            </p>
+            <a href="https://www.sparkdna.co.in/" target="_blank" rel="noopener noreferrer" class="btn-primary" style="display:inline-flex; width:auto; text-decoration:none;">
+              Visit Official Website &rarr;
+            </a>
+          </div>
+
+          <div class="company-grid-2">
+            <div class="company-info-card">
+              <h3>Industrial Automation</h3>
+              <p>Specialized in customized automation panels, Variable Frequency Drives (VFDs), Servo motor systems, and industrial PLC/SCADA architecture.</p>
+            </div>
+            <div class="company-info-card">
+              <h3>Embedded Electronics & IoT</h3>
+              <p>Custom edge-gateways, micro-controller based fieldbus interfaces, Modbus RTU/TCP bridging, and sub-second cloud synchronization platforms.</p>
+            </div>
+            <div class="company-info-card">
+              <h3>Manufacturing & Testing</h3>
+              <p>Comprehensive in-house assembly, thermal burn-in testing, and high-reliability verification for heavy industrial environments.</p>
+            </div>
+            <div class="company-info-card">
+              <h3>Corporate & Registered Office</h3>
+              <p>
+                <strong>Location:</strong> Coimbatore, Tamil Nadu, India<br>
+                <strong>GST Identification:</strong> 33ALCPP9746R2Z7<br>
+                <strong>Official Web:</strong> <a href="https://www.sparkdna.co.in/" target="_blank">www.sparkdna.co.in</a>
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 8: MY PROFILE
+             ================================================================== -->
+        <section id="page-profile" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Operator Profile</h1>
+            <p>Manage your authorized credentials and authentication status.</p>
+          </div>
+
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div class="panel-card" style="padding: 28px;">
+              <div style="display: flex; align-items: center; gap: 18px; margin-bottom: 24px;">
+                <div id="prof-avatar" class="user-avatar-circle" style="width: 56px; height: 56px; font-size: 22px;">U</div>
+                <div>
+                  <h3 id="prof-name" style="font-size: 18px; font-weight: 700;">Authorized Operator</h3>
+                  <span id="prof-email" style="font-size: 13px; color: var(--text-muted);">user@sparkdna.co.in</span>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                  <span style="color:var(--text-muted);">Account Status:</span>
+                  <strong style="color:var(--status-green);">Active / Verified</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                  <span style="color:var(--text-muted);">Authentication Provider:</span>
+                  <span>Google Firebase Auth</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                  <span style="color:var(--text-muted);">Access Level:</span>
+                  <span>Industrial IoT Operations</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px;">
+                <button id="prof-reset-pwd-btn" class="btn-secondary" style="flex: 1;">
+                  Send Password Reset Email
+                </button>
+                <button id="prof-logout-btn" class="btn-primary" style="background:var(--status-red); flex: 1;">
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 9: SETTINGS
+             ================================================================== -->
+        <section id="page-settings" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>System Settings</h1>
+            <p>Configure user preferences, timezone, and notification channels.</p>
+          </div>
+
+          <div style="max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+            <div class="panel-card" style="padding: 24px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">Interface & Appearance</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px;">Industrial Light System Theme</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Corporate white background with blue accents</div>
+                </div>
+                <span class="badge badge-on">Default Active</span>
+              </div>
+            </div>
+
+            <div class="panel-card" style="padding: 24px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px;">Regional & Timezone</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13px;">Timezone Standard</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Asia/Kolkata (IST - UTC+05:30)</div>
+                </div>
+                <span class="badge badge-on">Configured</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- APPLICATION FOOTER -->
+      <footer class="app-footer">
+        <div>SPARK DRIVES & AUTOMATION • Precision Industrial IoT Platform • © 2026 • Coimbatore, India</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER FOR INDUSTRIAL NOTIFICATIONS -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- FIREBASE CONFIG & INITIALIZATION -->
+  <script src="firebase-config.js"></script>
+
+  <!-- PRODUCTION APPLICATION LOGIC -->
+  <script src="app.js"></script>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
