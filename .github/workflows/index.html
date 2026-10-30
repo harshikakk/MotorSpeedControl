@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT DC Motor Control & Monitoring | Spark Drives & Automation</title>
+  
+  <!-- Favicon / Branding -->
+  <link rel="icon" href="https://5.imimg.com/data5/SELLER/Banner/2021/10/QW/NP/LH/58996682/favicon.ico">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- SheetJS for Exporting to Real Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Chart.js for Industrial IoT Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase v10 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* Motor-specific UI enhancements */
+    .motor-speed-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 5px;
+      background: #e2e8f0;
+      outline: none;
+      transition: background 0.2s;
+    }
+    .motor-speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--brand-primary);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s;
+    }
+    .motor-speed-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .preset-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover {
+      border-color: var(--brand-primary);
+      color: var(--brand-primary);
+      background: var(--brand-light);
+    }
+    .preset-btn.active {
+      background: var(--brand-primary);
+      color: #ffffff;
+      border-color: var(--brand-primary);
+    }
+    .badge-unavailable {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px dashed #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .disclaimer-banner {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .motor-state-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .motor-state-indicator.running {
+      background-color: #16a34a;
+      box-shadow: 0 0 10px rgba(22, 163, 74, 0.6);
+      animation: pulseGreen 1.5s infinite;
+    }
+    .motor-state-indicator.stopped {
+      background-color: #dc2626;
+      box-shadow: 0 0 6px rgba(220, 38, 38, 0.4);
+    }
+    @keyframes pulseGreen {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+      70% { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    .chart-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      box-shadow: var(--shadow-xs);
+    }
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .chart-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================================
+       APPLICATION SHELL (AUTHENTICATED / DIRECT DASHBOARD)
+       ======================================================================== -->
+  <div id="app-view" class="app-layout" style="display: flex;">
+    
+    <!-- FIXED LEFT SIDEBAR -->
+    <aside id="app-sidebar" class="app-sidebar">
+      <div class="sidebar-header">
+        <a href="#dashboard" class="sidebar-brand">
+          <div class="brand-icon-sq">S</div>
+          <div class="brand-title-wrap">
+            <span class="brand-title">SPARK DRIVES</span>
+            <span class="brand-sub">IoT Motor Control</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="sidebar-nav-container">
+        <div class="nav-section-title">Operations</div>
+        <a href="#dashboard" class="nav-item active" data-route="dashboard">
+          <span class="nav-icon"><i data-lucide="layout-grid" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Dashboard Overview</span>
+        </a>
+        <a href="#control" class="nav-item" data-route="control">
+          <span class="nav-icon"><i data-lucide="sliders" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Motor Control</span>
+        </a>
+        <a href="#monitoring" class="nav-item" data-route="monitoring">
+          <span class="nav-icon"><i data-lucide="gauge" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Live Monitoring</span>
+        </a>
+
+        <div class="nav-section-title">Analytics</div>
+        <a href="#performance" class="nav-item" data-route="performance">
+          <span class="nav-icon"><i data-lucide="line-chart" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Characteristics Curves</span>
+        </a>
+        <a href="#history" class="nav-item" data-route="history">
+          <span class="nav-icon"><i data-lucide="history" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Operation History</span>
+        </a>
+
+        <div class="nav-section-title">System</div>
+        <a href="#status" class="nav-item" data-route="status">
+          <span class="nav-icon"><i data-lucide="cpu" style="width:18px; height:18px;"></i></span>
+          <span class="nav-label">Device Status</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <div id="sidebar-status-dot" class="pulse-dot connecting"></div>
+          <div class="system-status-text">
+            <span id="sidebar-status-text">Checking Gateway...</span>
+            <span>ESP32 MX1508 Link</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN APP CANVAS & STICKY HEADER -->
+    <div class="app-main">
+      
+      <!-- STICKY TOP HEADER -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="page-title-box">
+            <h2 id="header-page-title">Dashboard Overview</h2>
+            <div class="breadcrumb-trail">
+              <a href="#dashboard">Industrial IoT</a>
+              <span>/</span>
+              <span id="breadcrumb-current">DC Motor Control System</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Dynamic IST Clock -->
+          <div class="clock-chip">
+            <i data-lucide="clock" style="width:14px; height:14px;"></i>
+            <span id="live-clock">--:--:-- IST</span>
+          </div>
+
+          <!-- Live Connection Status Badges -->
+          <div class="connection-status-group">
+            <div id="firebase-conn-badge" class="conn-badge waiting">
+              <span class="pulse-dot connecting"></span> Firebase Syncing
+            </div>
+            <div id="esp32-conn-badge" class="conn-badge waiting">
+              <span class="pulse-dot connecting"></span> ESP32 Offline
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- SCROLLABLE PAGE CANVAS -->
+      <main class="app-content-canvas">
+
+        <!-- ==================================================================
+             PAGE 1: DASHBOARD OVERVIEW
+             ================================================================== -->
+        <section id="page-dashboard" class="page-view">
+          <div class="page-hero">
+            <h1>DC Motor Control & Telemetry Overview</h1>
+            <p>Real-time bidirectional synchronization across Website, ESP32, Firebase, and PIStudio HMI.</p>
+          </div>
+
+          <!-- KEY KPI CARDS -->
+          <div class="kpi-grid">
+            <!-- Card 1: Motor Run State -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Operating Status</span>
+                <span class="kpi-badge"><i data-lucide="activity" style="width:12px; height:12px;"></i> Actuator</span>
+              </div>
+              <div class="kpi-value-row">
+                <span id="dash-motor-status" class="kpi-value" style="color: var(--status-red);">OFF</span>
+              </div>
+              <div class="kpi-subtext">
+                <span class="motor-state-indicator stopped" id="dash-motor-indicator"></span>
+                <span>Motor Driver: <strong>MX1508 H-Bridge</strong></span>
+              </div>
+            </div>
+
+            <!-- Card 2: Commanded Speed -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Selected Speed</span>
+                <span class="kpi-badge"><i data-lucide="gauge" style="width:12px; height:12px;"></i> Commanded</span>
+              </div>
+              <div class="kpi-value-row">
+                <span id="dash-speed-pct" class="kpi-value">0%</span>
+              </div>
+              <div class="kpi-subtext">
+                <span>Direction: <strong id="dash-direction">FORWARD</strong></span>
+              </div>
+            </div>
+
+            <!-- Card 3: Applied PWM Duty Cycle -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Applied PWM Duty</span>
+                <span class="kpi-badge"><i data-lucide="zap" style="width:12px; height:12px;"></i> ESP32 Output</span>
+              </div>
+              <div class="kpi-value-row">
+                <span id="dash-applied-pwm" class="kpi-value">0 / 255</span>
+              </div>
+              <div class="kpi-subtext">
+                <span>Calculated: <code>round(Speed% × 255 / 100)</code></span>
+              </div>
+            </div>
+
+            <!-- Card 4: Measured RPM -->
+            <div class="kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Measured Rotational Speed</span>
+                <span class="kpi-badge"><i data-lucide="disc" style="width:12px; height:12px;"></i> Optical Tach</span>
+              </div>
+              <div class="kpi-value-row">
+                <span id="dash-measured-rpm" class="badge-unavailable">Sensor Not Connected</span>
+              </div>
+              <div class="kpi-subtext">
+                <span>Hardware tachometer required for live RPM</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECONDARY ROW: QUICK CONTROL + RECENT HISTORY -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px;">
+            <!-- Quick Controls -->
+            <div class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <div style="font-size: 15px; font-weight: 700;">Quick Command Center</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Issue direct speed or stop command to Firebase</div>
+                </div>
+                <span class="badge badge-on" id="quick-source-badge">● Synced with HMI</span>
+              </div>
+              <div style="padding: 20px;">
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                  <button id="quick-start-btn" class="btn-primary" style="flex: 1; background: var(--status-green);">
+                    <i data-lucide="play" style="width:16px; height:16px;"></i> START MOTOR
+                  </button>
+                  <button id="quick-stop-btn" class="btn-primary" style="flex: 1; background: var(--status-red);">
+                    <i data-lucide="square" style="width:16px; height:16px;"></i> STOP MOTOR
+                  </button>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
+                    <span>Speed Adjustment:</span>
+                    <span id="quick-slider-label">0%</span>
+                  </div>
+                  <input type="range" id="quick-speed-slider" class="motor-speed-slider" min="0" max="100" value="0">
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: space-between;">
+                  <button class="preset-btn" onclick="window.setPresetSpeed(25)">25%</button>
+                  <button class="preset-btn" onclick="window.setPresetSpeed(50)">50%</button>
+                  <button class="preset-btn" onclick="window.setPresetSpeed(75)">75%</button>
+                  <button class="preset-btn" onclick="window.setPresetSpeed(100)">100%</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Operation Log -->
+            <div class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <div style="font-size: 15px; font-weight: 700;">Recent Events & Telemetry</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Bi-directional event log from Web, HMI, and Gateway</div>
+                </div>
+                <a href="#history" class="btn-secondary" style="font-size: 12px; padding: 4px 10px;">View Full History</a>
+              </div>
+              <div style="padding: 16px; max-height: 240px; overflow-y: auto;" id="dash-events-list">
+                <div style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px;">Waiting for events...</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 2: DEDICATED MOTOR CONTROL
+             ================================================================== -->
+        <section id="page-control" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Industrial Motor Control Interface</h1>
+            <p>Interactive motor control terminal with safe dead-time interlocks and speed presets.</p>
+          </div>
+
+          <div style="max-width: 760px; margin: 0 auto;">
+            <div class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <div style="font-size: 16px; font-weight: 700;">Controller Target: ESP32 / MX1508 Driver</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Actuator Pins: GPIO 18 (IN1), GPIO 19 (IN2)</div>
+                </div>
+                <span class="badge badge-on" id="ctrl-sync-badge">● Sync Active</span>
+              </div>
+
+              <div style="padding: 30px 24px;">
+                <!-- Main Status Banner -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-subtle); padding: 18px 24px; border-radius: var(--radius-md); margin-bottom: 24px;">
+                  <div style="display: flex; align-items: center; gap: 14px;">
+                    <span class="motor-state-indicator stopped" id="ctrl-motor-indicator" style="width:20px; height:20px;"></span>
+                    <div>
+                      <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Reported Motor State</div>
+                      <div id="ctrl-state-text" style="font-size: 20px; font-weight: 800; color: var(--status-red);">STOPPED</div>
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 12px; color: var(--text-muted);">Applied PWM</div>
+                    <div id="ctrl-pwm-text" style="font-size: 20px; font-weight: 800; color: var(--brand-primary);">0 / 255</div>
+                  </div>
+                </div>
+
+                <!-- Start / Stop Large Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px;">
+                  <button id="ctrl-start-btn" class="btn-primary" style="background: var(--status-green); height: 52px; font-size: 15px; font-weight: 700;">
+                    <i data-lucide="play" style="width:20px; height:20px;"></i> START MOTOR
+                  </button>
+                  <button id="ctrl-stop-btn" class="btn-primary" style="background: var(--status-red); height: 52px; font-size: 15px; font-weight: 700;">
+                    <i data-lucide="square" style="width:20px; height:20px;"></i> STOP MOTOR
+                  </button>
+                </div>
+
+                <!-- Speed Control Slider -->
+                <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Speed Percentage:</span>
+                    <span id="ctrl-speed-num" style="font-size: 24px; font-weight: 800; color: var(--brand-primary);">0%</span>
+                  </div>
+                  <input type="range" id="ctrl-speed-slider" class="motor-speed-slider" min="0" max="100" value="0">
+                  <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                    <span>0% (Stopped)</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100% (Full PWM)</span>
+                  </div>
+
+                  <!-- Preset Speed Buttons -->
+                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px;">
+                    <button class="preset-btn" onclick="window.setPresetSpeed(25)">25% Speed</button>
+                    <button class="preset-btn" onclick="window.setPresetSpeed(50)">50% Speed</button>
+                    <button class="preset-btn" onclick="window.setPresetSpeed(75)">75% Speed</button>
+                    <button class="preset-btn" onclick="window.setPresetSpeed(100)">100% Speed</button>
+                  </div>
+                </div>
+
+                <!-- Direction Control -->
+                <div style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-subtle); padding: 16px 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
+                  <div>
+                    <div style="font-weight: 700; font-size: 14px;">Rotation Direction</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Protected by dead-time transition interlock</div>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button id="dir-fwd-btn" class="preset-btn active" onclick="window.setDirection('FORWARD')">FORWARD</button>
+                    <button id="dir-rev-btn" class="preset-btn" onclick="window.setDirection('REVERSE')">REVERSE</button>
+                  </div>
+                </div>
+
+                <!-- Telemetry Info Grid -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                  <div style="background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Command Source</div>
+                    <div id="ctrl-source-display" style="font-weight:700; font-size:13px;">Website</div>
+                  </div>
+                  <div style="background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">HMI Status</div>
+                    <div style="font-weight:700; font-size:13px; color:var(--status-green);">Modbus Ready</div>
+                  </div>
+                  <div style="background:var(--bg-subtle); padding:12px; border-radius:var(--radius-sm); text-align:center;">
+                    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Last Updated</div>
+                    <div id="ctrl-last-updated" style="font-weight:700; font-size:13px;">--:--:--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 3: LIVE MONITORING
+             ================================================================== -->
+        <section id="page-monitoring" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Live Motor Telemetry & Sensor Monitoring</h1>
+            <p>Differentiating commanded setpoints from physical sensor measurements.</p>
+          </div>
+
+          <!-- SECTION A: COMMANDED PARAMETERS -->
+          <div style="margin-bottom: 24px;">
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="cpu" style="width:16px; height:16px; color:var(--brand-primary);"></i>
+              Commanded Setpoints (ESP32 Outputs)
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <span class="kpi-label">Commanded State</span>
+                <span id="mon-cmd-state" class="kpi-value">OFF</span>
+                <span class="kpi-subtext">Issued by Web / HMI</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">Target Speed %</span>
+                <span id="mon-cmd-speed" class="kpi-value">0%</span>
+                <span class="kpi-subtext">0 to 100% range</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">Applied PWM Value</span>
+                <span id="mon-cmd-pwm" class="kpi-value">0 / 255</span>
+                <span class="kpi-subtext">8-Bit PWM Timer (5 kHz)</span>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">Operating Direction</span>
+                <span id="mon-cmd-dir" class="kpi-value">FORWARD</span>
+                <span class="kpi-subtext">MX1508 Channel Mode</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION B: PHYSICAL SENSORS -->
+          <div>
+            <div style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="radio" style="width:16px; height:16px; color:var(--status-amber);"></i>
+              Physical Sensor Feedback (Hardware Required)
+            </div>
+            <div class="kpi-grid">
+              <!-- RPM -->
+              <div class="kpi-card">
+                <span class="kpi-label">Measured Rotational Speed</span>
+                <div style="margin: 12px 0;">
+                  <span class="badge-unavailable">Sensor Not Connected</span>
+                </div>
+                <span class="kpi-subtext">Requires Optical / Hall Encoder</span>
+              </div>
+
+              <!-- Voltage & Current -->
+              <div class="kpi-card">
+                <span class="kpi-label">Terminal Voltage & Current</span>
+                <div style="margin: 12px 0;">
+                  <span class="badge-unavailable">Sensor Not Connected</span>
+                </div>
+                <span class="kpi-subtext">Requires INA219 / ACS712 Module</span>
+              </div>
+
+              <!-- Torque -->
+              <div class="kpi-card">
+                <span class="kpi-label">Shaft Torque (N·m)</span>
+                <div style="margin: 12px 0;">
+                  <span class="badge-unavailable">Sensor Not Connected</span>
+                </div>
+                <span class="kpi-subtext">Requires Load Cell / Dynamometer</span>
+              </div>
+
+              <!-- Electrical Power -->
+              <div class="kpi-card">
+                <span class="kpi-label">Electrical Power (Watts)</span>
+                <div style="margin: 12px 0;">
+                  <span class="badge-unavailable">Sensor Not Connected</span>
+                </div>
+                <span class="kpi-subtext">P = V × I (Calculated when sensors added)</span>
+              </div>
+
+              <!-- Mechanical Power & Efficiency -->
+              <div class="kpi-card">
+                <span class="kpi-label">Efficiency (%)</span>
+                <div style="margin: 12px 0;">
+                  <span class="badge-unavailable">Sensor Not Connected</span>
+                </div>
+                <span class="kpi-subtext">η = P_mech / P_elec</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 4: PERFORMANCE CHARACTERISTICS (8 GRAPHS)
+             ================================================================== -->
+        <section id="page-performance" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Motor Performance & Characteristic Curves</h1>
+            <p>Electromechanical behavior curves and real-time operational response analysis.</p>
+          </div>
+
+          <!-- PROMINENT DISCLAIMER BANNER -->
+          <div class="disclaimer-banner">
+            <i data-lucide="alert-triangle" style="width:24px; height:24px; flex-shrink:0;"></i>
+            <div>
+              <strong>Illustrative/Simulated Data — Not Measured Experimental Results.</strong><br>
+              Experimental characteristic curves (Torque, Current, and Efficiency vs Load) require an attached dynamometer, RPM sensor, and shunt sensor. The curves below depict standard theoretical DC motor electromechanical characteristics for educational & validation reference. Live time-series graphs reflect real-time commanded output.
+            </div>
+          </div>
+
+          <!-- 8 CHARTS GRID -->
+          <div class="chart-grid">
+            <!-- 1. Speed vs Torque -->
+            <div class="chart-card">
+              <div class="chart-title">1. Speed vs Torque Curve</div>
+              <div class="chart-subtitle">Linear speed drop as shaft torque increases to stall</div>
+              <canvas id="chart-speed-torque" height="220"></canvas>
+            </div>
+
+            <!-- 2. Speed vs Load -->
+            <div class="chart-card">
+              <div class="chart-title">2. Speed vs Mechanical Load</div>
+              <div class="chart-subtitle">Rotational speed response across rated load %</div>
+              <canvas id="chart-speed-load" height="220"></canvas>
+            </div>
+
+            <!-- 3. Torque vs Load -->
+            <div class="chart-card">
+              <div class="chart-title">3. Torque vs Mechanical Load</div>
+              <div class="chart-subtitle">Direct linear torque progression with mechanical resistance</div>
+              <canvas id="chart-torque-load" height="220"></canvas>
+            </div>
+
+            <!-- 4. Efficiency vs Load -->
+            <div class="chart-card">
+              <div class="chart-title">4. Efficiency vs Load Curve</div>
+              <div class="chart-subtitle">Peak motor efficiency region (~60% rated load)</div>
+              <canvas id="chart-efficiency-load" height="220"></canvas>
+            </div>
+
+            <!-- 5. PWM Duty Cycle vs Measured Speed -->
+            <div class="chart-card">
+              <div class="chart-title">5. PWM Duty Cycle vs Speed Transfer</div>
+              <div class="chart-subtitle">Deadband threshold, linear range, and saturation</div>
+              <canvas id="chart-pwm-speed" height="220"></canvas>
+            </div>
+
+            <!-- 6. Current vs Load -->
+            <div class="chart-card">
+              <div class="chart-title">6. Current vs Mechanical Load</div>
+              <div class="chart-subtitle">Armature current rising from no-load to stall current</div>
+              <canvas id="chart-current-load" height="220"></canvas>
+            </div>
+
+            <!-- 7. Speed vs Time (Live Time Series) -->
+            <div class="chart-card">
+              <div class="chart-title">7. Live Commanded Speed vs Time</div>
+              <div class="chart-subtitle">Real-time speed command history over the session (s)</div>
+              <canvas id="chart-speed-time" height="220"></canvas>
+            </div>
+
+            <!-- 8. Motor Operating State vs Time -->
+            <div class="chart-card">
+              <div class="chart-title">8. Operating State vs Time</div>
+              <div class="chart-subtitle">Step-response history of motor Run (1) vs Stop (0)</div>
+              <canvas id="chart-state-time" height="220"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 5: MOTOR HISTORY & AUDIT LOGS
+             ================================================================== -->
+        <section id="page-history" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Motor Operation History & Audit Trail</h1>
+            <p>Chronological record of commands, state transitions, speed adjustments, and source origins.</p>
+          </div>
+
+          <div class="panel-card" style="margin-bottom: 24px;">
+            <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; gap: 12px; align-items: center;">
+                <label style="font-size: 13px; font-weight: 600;">Filter by Source:</label>
+                <select id="hist-filter-source" class="form-input" style="width: 140px; padding: 6px 10px; font-size: 13px;">
+                  <option value="ALL">All Sources</option>
+                  <option value="website">Website</option>
+                  <option value="hmi">PIStudio HMI</option>
+                  <option value="System">System / ESP32</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button id="export-csv-btn" class="btn-secondary" style="font-size: 13px;">
+                  <i data-lucide="download" style="width:14px; height:14px;"></i> Export CSV
+                </button>
+                <button id="export-excel-btn" class="btn-primary" style="font-size: 13px;">
+                  <i data-lucide="file-spreadsheet" style="width:14px; height:14px;"></i> Export Excel (.xlsx)
+                </button>
+              </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+              <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background: var(--bg-subtle); text-align: left; font-size: 12px; color: var(--text-muted);">
+                    <th style="padding: 12px 16px;">Timestamp</th>
+                    <th style="padding: 12px 16px;">Event Type</th>
+                    <th style="padding: 12px 16px;">Origin Source</th>
+                    <th style="padding: 12px 16px;">Motor State</th>
+                    <th style="padding: 12px 16px;">Speed %</th>
+                    <th style="padding: 12px 16px;">PWM Duty</th>
+                    <th style="padding: 12px 16px;">Details</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">
+                      Loading history records from Firebase...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             PAGE 6: DEVICE STATUS
+             ================================================================== -->
+        <section id="page-status" class="page-view" style="display: none;">
+          <div class="page-hero">
+            <h1>Industrial Device Health & Gateway Status</h1>
+            <p>Active heartbeat telemetry, communication latency, and hardware health metrics.</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <!-- ESP32 Hardware Gateway -->
+            <div class="panel-card" style="padding: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 700;">ESP32 NodeMCU Gateway</h3>
+                <span id="status-esp-badge" class="badge badge-off">Offline</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Device Identifier:</span>
+                  <code>ESP32-MOTOR-001</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">IP Address:</span>
+                  <span id="status-esp-ip">--</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">MAC Address:</span>
+                  <span id="status-esp-mac">--</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Last Heartbeat:</span>
+                  <span id="status-esp-lastseen">No signal</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Heartbeat Timeout:</span>
+                  <span>15 Seconds (Auto-Failover)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firebase Cloud Communication -->
+            <div class="panel-card" style="padding: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 700;">Google Firebase RTDB</h3>
+                <span class="badge badge-on">Connected</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Project ID:</span>
+                  <code>harshini-feb82</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Database Protocol:</span>
+                  <span>WebSocket Stream (SSE)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Security Model:</span>
+                  <span>Type-Validated Rules</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Sync Mode:</span>
+                  <span>Separated Desired / Actual</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- PIStudio HMI Gateway -->
+            <div class="panel-card" style="padding: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 16px; font-weight: 700;">PIStudio HMI Fieldbus</h3>
+                <span class="badge badge-on">Modbus TCP Ready</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Field Protocol:</span>
+                  <span>Modbus TCP (Port 502)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Motor Run Coil:</span>
+                  <code>00001 (0x0000)</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Speed Setpoint Register:</span>
+                  <code>40001 (0x0000)</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color:var(--text-muted);">Applied PWM Feedback:</span>
+                  <code>40002 (0x0001)</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- FIREBASE CONFIG & INITIALIZATION -->
+  <script src="firebase-config.js"></script>
+
+  <!-- PRODUCTION APPLICATION LOGIC -->
+  <script src="app.js"></script>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>
