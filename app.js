@@ -207,6 +207,11 @@
         AppState.motor.actual = data;
         updateActualUI(data);
         recordTimeSeriesPoint(data);
+        if (data.controllerOnline) {
+          AppState.lastHeartbeatTime = Date.now();
+          AppState.esp32Online = true;
+          updateDeviceStatusUI({ ipAddress: "Connected (ESP32 Gateway)" }, true);
+        }
       }
     });
 
